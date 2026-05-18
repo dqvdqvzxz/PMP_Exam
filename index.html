@@ -247,63 +247,168 @@ function answerPanel(q) {
   <div class="explain">${makeExplanation(q)}</div>`;
 }
 function makeExplanation(q) {
-  const text=(q.question+' '+Object.values(q.options||{}).join(' ')).toLowerCase();
-  const correct=q.correct || '';
-  let topic='Mindset PMP';
-  let key='Cách xử lý theo PMP là không phản ứng vội. PM cần hiểu vấn đề, xác định stakeholder liên quan, đánh giá impact, rồi mới hành động theo plan/process đã được thống nhất.';
-  let trap='Bẫy thường gặp là chọn đáp án nghe “nhanh” như tự làm ngay, ép team/vendor, escalate quá sớm hoặc bỏ qua bước phân tích.';
-  let examTip='Ưu tiên chuỗi: understand/analyze → collaborate/communicate → follow plan/process → document/update.';
-  if(/risk|rủi ro|threat|opportunity|risk register|risk response/.test(text)) {
-    topic='Risk Management';
-    key='Nếu rủi ro đã được nhận diện, hãy xem risk register/risk response plan và triển khai response đã plan. Nếu là rủi ro mới, cần phân tích probability/impact, xác định owner/response rồi cập nhật risk register.';
-    trap='Đừng update lessons learned hoặc escalate ngay khi chưa xem response plan; cũng đừng tự đổi schedule/scope nếu chưa đánh giá impact.';
-    examTip='Keyword “risk materialized / identified risk” → xem risk register trước; “new risk” → analyze + update risk register.';
-  } else if(/change request|scope creep|baseline|ccb|additional deliverable|new requirement|change/.test(text)) {
-    topic='Change Control';
-    key='Với thay đổi scope/cost/schedule/baseline, PM không tự ý implement. Trước tiên đánh giá impact trên scope, schedule, cost, quality, risk; sau đó follow change management plan và đưa CCB nếu cần.';
-    trap='Đáp án “làm luôn vì có value/không impact” vẫn thường sai nếu thay đổi scope chính thức chưa được xử lý qua change process.';
-    examTip='Keyword “add feature/deliverable/change baseline” → impact analysis trước, sau đó change request/CCB.';
-  } else if(/quality|defect|acceptance criteria|standard|testing|uat|control limit|tolerance/.test(text)) {
-    topic='Quality Management';
-    key='Dựa vào acceptance criteria, quality metrics/measurements và quality management plan. Khi có defect hoặc rework, nên tìm root cause/process issue thay vì chỉ sửa triệu chứng.';
-    trap='Đừng chỉ blame team/vendor hoặc thêm tester ngay; PMP ưu tiên prevention, RCA, process audit và tiêu chí nghiệm thu rõ ràng.';
-    examTip='Keyword “quality standard/defect/not accepted” → kiểm tra criteria/metrics, RCA hoặc process audit.';
-  } else if(/stakeholder|sponsor|customer|client|community|user|operations/.test(text)) {
-    topic='Stakeholder Engagement';
-    key='PM cần identify/analyze stakeholder, hiểu nhu cầu giao tiếp và mức độ ảnh hưởng, sau đó cập nhật stakeholder engagement/communication plan để alignment liên tục.';
-    trap='Không bỏ qua stakeholder “khó chịu/không ủng hộ”; cũng không chỉ báo cáo chung chung nếu stakeholder có nhu cầu riêng.';
-    examTip='Keyword “not engaged/unaware/new stakeholder/community” → stakeholder analysis + engagement plan.';
-  } else if(/agile|sprint|scrum|backlog|product owner|iteration|mvp|retrospective|daily standup/.test(text)) {
-    topic='Agile / Hybrid';
-    key='Trong agile/hybrid, PM/leader đóng vai servant leader: facilitate, remove impediments, hỗ trợ team tự tổ chức, tối ưu value delivery qua backlog prioritization, review/retrospective và feedback sớm.';
-    trap='Đừng command-and-control, ép fast-track toàn bộ, hoặc đổi sprint tùy tiện. Product Owner ưu tiên backlog; team tự quyết cách thực hiện.';
-    examTip='Keyword “unclear requirement/high uncertainty/fixed date” → hybrid/agile, MVP, backlog priority, inspect & adapt.';
-  } else if(/team|conflict|member|resource|virtual|training|ground rules|charter|empower|motivation/.test(text)) {
-    topic='Team / Resource Management';
-    key='PM nên coach, mentor, empower, facilitate conflict resolution và tạo môi trường làm việc rõ ground rules. Với thiếu skill, ưu tiên training/coaching/knowledge sharing trước khi thay người.';
-    trap='Không escalate HR/functional manager quá sớm, không thay resource ngay, không phạt team trước khi hiểu nguyên nhân.';
-    examTip='Keyword “conflict/low morale/lack skill/virtual team” → talk directly, support, train, facilitate, agree ground rules.';
-  } else if(/contract|vendor|supplier|procurement|sow|invoice|payment/.test(text)) {
-    topic='Procurement / Contract';
-    key='Kiểm tra contract/SOW/procurement documents và acceptance criteria. Làm việc với vendor để tìm giải pháp, nhưng thay đổi scope/cost/payment phải đi qua change/procurement control.';
-    trap='Đừng hủy contract/phạt/escalate legal ngay nếu chưa review điều khoản và thương lượng giải pháp phù hợp.';
-    examTip='Keyword “vendor/supplier/contract/SOW” → review contract/SOW + collaborate + formal change nếu ảnh hưởng scope/cost.';
-  }
-  let lines = [`<h4>${topic}</h4><p><strong>Logic PMP:</strong> ${escapeHtml(key)}</p><p><strong>Bẫy cần tránh:</strong> ${escapeHtml(trap)}</p>`];
+  const correct = normalize(q.correct || '');
+  const info = inferPmpArea(q);
+  const questionVi = translatePmpText(q.question || '');
+  let lines = [];
+
+  lines.push(`<h4>1. Dịch đầy đủ toàn bộ câu hỏi</h4>`);
+  lines.push(`<p>${escapeHtml(questionVi)}</p>`);
+
+  lines.push(`<h4>2. Dịch đầy đủ tất cả các đáp án lựa chọn</h4>`);
   if(q.options && Object.keys(q.options).length) {
-    lines.push('<h4>Phân tích từng đáp án</h4>');
+    lines.push('<ul class="explain-list">');
     for (const [k,v] of Object.entries(q.options)) {
-      const ok=correct.includes(k);
-      const label = ok ? '✅ Đúng nhất' : '❌ Kém tối ưu';
-      const reason = ok
-        ? `Đáp án này phù hợp nhất vì đi theo đúng hướng của ${topic}: xử lý có kiểm soát, có phân tích/trao đổi cần thiết và không phá vỡ quy trình quản trị dự án.`
-        : `Đáp án này dễ gây sai vì có xu hướng hành động quá sớm, bỏ qua bước phân tích/trao đổi, hoặc không bám theo plan/process chính thức. Trong PMP, đáp án đúng thường cân bằng giữa value, stakeholder alignment và governance.`;
-      lines.push(`<p><strong>${escapeHtml(k)}.</strong> ${label}: ${escapeHtml(reason)}</p>`);
+      lines.push(`<li><strong>${escapeHtml(k)}.</strong> ${escapeHtml(v)}<br><em>→ ${escapeHtml(translatePmpText(v))}</em></li>`);
     }
+    lines.push('</ul>');
+  } else {
+    lines.push('<p>Câu dạng kéo-thả/hotspot/hình ảnh. File PDF gốc có phần đáp án dạng hình, nên trang web chỉ hiển thị phần text parse được.</p>');
   }
-  lines.push(`<h4>Mẹo thi nhanh</h4><p>${escapeHtml(examTip)}</p>`);
+
+  lines.push(`<h4>3. Phân tích</h4>`);
+  lines.push(`<p><strong>Knowledge Area + Process:</strong><br>${escapeHtml(info.area)}<br>${escapeHtml(info.process)}</p>`);
+  lines.push(`<p><strong>Đáp án đúng:</strong> ${escapeHtml(q.correct || 'Không parse được từ PDF')}</p>`);
+
+  lines.push(`<h4>Phân tích đáp án đúng</h4>`);
+  lines.push(`<p>${escapeHtml(info.correctLogic)}</p>`);
+  lines.push(`<p><strong>Keyword PMP:</strong> ${escapeHtml(info.keywords)}</p>`);
+
+  lines.push(`<h4>Phân tích đáp án sai</h4>`);
+  if(q.options && Object.keys(q.options).length) {
+    for (const [k,v] of Object.entries(q.options)) {
+      const ok = correct.includes(k);
+      if(ok) continue;
+      lines.push(`<p><strong>${escapeHtml(k)}.</strong> ${escapeHtml(v)}<br>❌ ${escapeHtml(wrongOptionReason(info, v))}</p>`);
+    }
+  } else {
+    lines.push('<p>Với câu dạng kéo-thả/hotspot, cần đối chiếu trực tiếp hình ảnh đáp án trong PDF gốc.</p>');
+  }
+
+  lines.push(`<h4>Bẫy / mẹo PMP</h4>`);
+  lines.push(`<p>${escapeHtml(info.trap)}</p>`);
   return lines.join('');
 }
+
+function inferPmpArea(q) {
+  const text = (q.question + ' ' + Object.values(q.options || {}).join(' ')).toLowerCase();
+  const has = (re) => re.test(text);
+  const base = {
+    area:'PMBOK6 Knowledge Area: Integration / People / Process / Business Environment tùy ngữ cảnh câu hỏi',
+    process:'Process thường gặp: Monitor and Control Project Work hoặc Direct and Manage Project Work, tùy keyword trong câu.',
+    keywords:'understand/analyze → collaborate/communicate → follow plan/process → update artifact',
+    correctLogic:'Đáp án đúng thường là hành động cân bằng giữa phân tích vấn đề, trao đổi với stakeholder/team, tuân thủ plan/process và cập nhật artifact phù hợp. Tránh phản ứng vội hoặc bỏ qua governance.',
+    trap:'Trong PMP, đừng chọn đáp án nghe “nhanh” như tự làm ngay, ép team/vendor, escalate quá sớm, hoặc thay đổi scope/schedule/cost khi chưa đánh giá impact.'
+  };
+  if (has(/risk|threat|opportunity|risk register|risk response|mitigation|contingency|probability|impact/)) return {
+    area:'PMBOK6 Knowledge Area: Project Risk Management',
+    process: has(/response|mitigat|avoid|transfer|accept|exploit|escalate/) ? 'Process: Plan Risk Responses / Implement Risk Responses / Monitor Risks' : 'Process: Identify Risks / Perform Qualitative Risk Analysis / Monitor Risks',
+    keywords:'risk, risk register, probability/impact, response plan, trigger, issue',
+    correctLogic:'Nếu rủi ro đã được nhận diện, PM cần xem risk register/risk response plan và triển khai response đã được lập kế hoạch. Nếu là rủi ro mới, cần phân tích xác suất/tác động, xác định owner/response rồi cập nhật risk register.',
+    trap:'Risk chưa xảy ra thì quản lý trong risk register; risk đã xảy ra thành issue thì xử lý issue và thực hiện response đã plan. Không escalate hoặc đổi baseline ngay nếu chưa đánh giá impact.'
+  };
+  if (has(/change request|scope creep|baseline|ccb|additional deliverable|new requirement|change control|change management|rebaseline/)) return {
+    area:'PMBOK6 Knowledge Area: Project Integration Management',
+    process:'Process: Perform Integrated Change Control',
+    keywords:'change request, impact analysis, baseline, CCB, approved change',
+    correctLogic:'Khi có thay đổi ảnh hưởng scope/cost/schedule/quality/risk/baseline, PM không tự ý implement. Trước tiên cần đánh giá impact, sau đó đi theo change management plan và trình CCB hoặc authority phù hợp.',
+    trap:'Đáp án “làm luôn vì có value” vẫn sai nếu thay đổi chưa qua change control. PMP ưu tiên impact analysis trước khi approve/implement.'
+  };
+  if (has(/quality|defect|acceptance criteria|standard|testing|uat|control limit|tolerance|inspection|audit|definition of done|dod/)) return {
+    area:'PMBOK6 Knowledge Area: Project Quality Management',
+    process: has(/inspect|control|defect|test|uat|measurement/) ? 'Process: Control Quality' : 'Process: Plan Quality Management / Manage Quality',
+    keywords:'quality metrics, acceptance criteria, quality checklist, defect, audit, test result',
+    correctLogic:'Cần dựa vào tiêu chí nghiệm thu, quality metrics, quality checklist hoặc quality management plan để xác nhận deliverable có đáp ứng yêu cầu hay không. Nếu có defect/rework, nên tìm nguyên nhân gốc và cải thiện process.',
+    trap:'Đừng chỉ blame team/vendor hoặc thêm tester ngay. PMP ưu tiên prevention, root cause analysis, process audit và acceptance criteria rõ ràng.'
+  };
+  if (has(/stakeholder|sponsor|customer|client|community|user|end user|operations|engagement|expectation/)) return {
+    area:'PMBOK6 Knowledge Area: Project Stakeholder Management',
+    process: has(/identify|new stakeholder|register/) ? 'Process: Identify Stakeholders' : 'Process: Plan Stakeholder Engagement / Manage Stakeholder Engagement / Monitor Stakeholder Engagement',
+    keywords:'stakeholder, expectation, engagement, communication needs, influence, support/resistance',
+    correctLogic:'PM cần xác định stakeholder, phân tích nhu cầu/kỳ vọng/mức ảnh hưởng, sau đó điều chỉnh stakeholder engagement plan hoặc communications approach để duy trì alignment.',
+    trap:'Không bỏ qua stakeholder không ủng hộ hoặc mới xuất hiện. Cũng không chỉ gửi report chung chung nếu stakeholder có nhu cầu giao tiếp riêng.'
+  };
+  if (has(/communication|communicat|report|status|email|meeting|dashboard|information radiator|virtual|collaboration tool/)) return {
+    area:'PMBOK6 Knowledge Area: Project Communications Management',
+    process: has(/monitor|complain|inadequate|late|missing/) ? 'Process: Monitor Communications' : 'Process: Plan Communications Management / Manage Communications',
+    keywords:'communication needs, channel, frequency, level of detail, stakeholder information needs',
+    correctLogic:'PM cần đảm bảo đúng người nhận đúng thông tin, đúng format, đúng thời điểm và đúng mức chi tiết. Khi communication không hiệu quả, cần review communication needs/plan và điều chỉnh.',
+    trap:'Đừng chỉ gửi thêm email/report. PMP hỏi communication thì thường cần xác định nhu cầu thông tin, kênh, tần suất và feedback loop.'
+  };
+  if (has(/agile|sprint|scrum|backlog|product owner|iteration|mvp|retrospective|daily standup|velocity|kanban|burnup|burndown/)) return {
+    area:'Agile/Hybrid trong PMP - thường liên quan People/Process Domain và tailoring approach',
+    process:'Process tương ứng: Manage Project Knowledge, Manage Team, Manage Stakeholder Engagement, hoặc adaptive planning qua product backlog/sprint events',
+    keywords:'servant leader, backlog priority, MVP, sprint review, retrospective, impediment, inspect and adapt',
+    correctLogic:'Trong Agile/Hybrid, project leader nên đóng vai servant leader: facilitate, remove impediments, hỗ trợ team tự tổ chức, tối ưu value delivery qua backlog prioritization, review/retrospective và feedback sớm.',
+    trap:'Đừng command-and-control, ép team làm ngay, tự đổi sprint tùy tiện hoặc bỏ qua Product Owner. Ưu tiên collaboration, transparency, inspection và adaptation.'
+  };
+  if (has(/team|conflict|member|resource|training|ground rules|team charter|empower|motivation|morale|coach|mentor|skill|performance/)) return {
+    area:'PMBOK6 Knowledge Area: Project Resource Management',
+    process: has(/develop|training|coach|mentor|motivation|team building/) ? 'Process: Develop Team' : 'Process: Manage Team / Plan Resource Management / Acquire Resources',
+    keywords:'team performance, conflict, training, coaching, empowerment, ground rules, team charter',
+    correctLogic:'PM nên coach, mentor, empower, facilitate conflict resolution và tạo môi trường rõ ground rules. Với thiếu kỹ năng, ưu tiên training/coaching/knowledge sharing trước khi thay người.',
+    trap:'Không escalate HR/functional manager quá sớm, không thay resource ngay, không phạt team trước khi hiểu nguyên nhân.'
+  };
+  if (has(/contract|vendor|supplier|procurement|sow|invoice|payment|bid|bidder|rfp|rfq|seller|buyer/)) return {
+    area:'PMBOK6 Knowledge Area: Project Procurement Management',
+    process: has(/conduct|bid|rfp|proposal|vendor selection/) ? 'Process: Conduct Procurements' : 'Process: Control Procurements / Plan Procurement Management',
+    keywords:'contract, SOW, vendor, supplier, bid, procurement documents, negotiation',
+    correctLogic:'Cần kiểm tra contract/SOW/procurement documents và acceptance criteria. Làm việc với vendor để tìm giải pháp, nhưng thay đổi scope/cost/payment phải đi qua procurement/change control.',
+    trap:'Đừng hủy contract, phạt hoặc escalate legal ngay nếu chưa review điều khoản, bằng chứng và phương án thương lượng phù hợp.'
+  };
+  if (has(/cost|budget|cpi|earned value|evm|ev |pv |actual cost|estimate|financing|funding|reserve/)) return {
+    area:'PMBOK6 Knowledge Area: Project Cost Management',
+    process: has(/estimate/) ? 'Process: Estimate Costs' : 'Process: Determine Budget / Control Costs',
+    keywords:'budget, estimate, CPI, EV, AC, BAC, reserve, funding',
+    correctLogic:'Câu hỏi cost thường yêu cầu đọc chỉ số hoặc chọn kỹ thuật estimate/budget phù hợp. Nếu có variance hoặc vượt budget, PM cần phân tích nguyên nhân/impact và xử lý theo cost management/change control.',
+    trap:'CPI < 1 là over budget; CPI > 1 là under budget. Đừng chỉ xin thêm tiền nếu chưa phân tích impact và quy trình change.'
+  };
+  if (has(/schedule|spi|critical path|milestone|delay|timeline|duration|float|slack|fast track|crash/)) return {
+    area:'PMBOK6 Knowledge Area: Project Schedule Management',
+    process:'Process: Develop Schedule / Control Schedule',
+    keywords:'SPI, critical path, delay, milestone, float/slack, crashing, fast tracking',
+    correctLogic:'Khi có vấn đề schedule, PM cần xác định impact lên critical path/milestone, phân tích nguyên nhân và chọn kỹ thuật schedule compression hoặc corrective action phù hợp.',
+    trap:'SPI < 1 là chậm tiến độ. Fast tracking chỉ dùng khi có thể làm song song; crashing cần thêm resource/cost.'
+  };
+  if (has(/scope|wbs|work breakdown|requirements|traceability|deliverable|validate scope|acceptance/)) return {
+    area:'PMBOK6 Knowledge Area: Project Scope Management',
+    process: has(/traceability|requirements/) ? 'Process: Collect Requirements / Validate Scope / Control Scope' : 'Process: Create WBS / Define Scope / Validate Scope',
+    keywords:'requirements documentation, RTM, scope baseline, WBS, accepted deliverables',
+    correctLogic:'Scope questions thường xoay quanh requirement, RTM, WBS/scope baseline và acceptance. Cần xác minh requirement/acceptance criteria trước khi kết luận deliverable đúng hay sai.',
+    trap:'Requirements Documentation = yêu cầu là gì; RTM = yêu cầu đến từ đâu và trace tới deliverable/test nào; Accepted Deliverables là sau Validate Scope.'
+  };
+  return base;
+}
+
+function wrongOptionReason(info, optionText) {
+  const o = String(optionText || '').toLowerCase();
+  if (/escalate|sponsor|senior management|hr|human resources|legal/.test(o)) return 'Thường kém tối ưu vì escalation quá sớm; PMP ưu tiên PM/team phân tích và xử lý trong phạm vi quyền hạn trước.';
+  if (/immediately|right away|directly|force|demand|insist|tell/.test(o)) return 'Có xu hướng hành động/ra lệnh quá sớm, thiếu collaboration hoặc thiếu bước đánh giá impact.';
+  if (/ignore|continue|proceed as planned|do nothing|wait/.test(o)) return 'Bỏ qua tín hiệu vấn đề/rủi ro hoặc trì hoãn xử lý, không phù hợp tư duy chủ động của PMP.';
+  if (/change request|ccb|rebaseline/.test(o) && !/Change Control/.test(info.area + info.process)) return 'Change request/CCB có thể đúng khi ảnh hưởng baseline, nhưng trong câu này chưa phải bước đầu tiên nếu chưa phân tích hoặc xác nhận vấn đề.';
+  if (/replace|remove|hire|outsource/.test(o)) return 'Thay người/thuê ngoài thường là biện pháp mạnh; PMP ưu tiên hiểu nguyên nhân, coaching, training hoặc collaboration trước.';
+  if (/email|report|document/.test(o)) return 'Chỉ ghi nhận/gửi thông tin là chưa đủ nếu câu hỏi yêu cầu giải quyết nguyên nhân hoặc align với stakeholder/team.';
+  return 'Kém tối ưu vì không bám sát keyword chính của câu hỏi hoặc bỏ qua bước phân tích/trao đổi/tuân thủ process trước khi hành động.';
+}
+
+function translatePmpText(input) {
+  let s = String(input || '').trim();
+  if(!s) return '';
+  const replacements = [
+    [/A project manager/gi,'Một project manager'],[/The project manager/gi,'Project manager'],[/project manager/gi,'project manager'],
+    [/project team/gi,'project team'],[/team member/gi,'thành viên nhóm'],[/team members/gi,'các thành viên nhóm'],[/stakeholders/gi,'các stakeholder'],[/stakeholder/gi,'stakeholder'],[/sponsor/gi,'sponsor'],[/customer/gi,'khách hàng'],[/client/gi,'client'],
+    [/has been assigned to/gi,'được phân công vào'],[/has just been/gi,'vừa được'],[/is leading/gi,'đang dẫn dắt'],[/is managing/gi,'đang quản lý'],[/is working on/gi,'đang làm việc trong'],[/is concerned/gi,'lo ngại'],[/has informed/gi,'đã thông báo'],[/has requested/gi,'đã yêu cầu'],
+    [/during/gi,'trong khi'],[/after/gi,'sau khi'],[/before/gi,'trước khi'],[/while/gi,'trong khi'],[/currently/gi,'hiện tại'],[/recently/gi,'gần đây'],[/soon/gi,'sớm'],[/next/gi,'tiếp theo'],[/first/gi,'đầu tiên'],
+    [/project/gi,'dự án'],[/program/gi,'chương trình'],[/portfolio/gi,'portfolio'],[/deliverables/gi,'các deliverable'],[/deliverable/gi,'deliverable'],[/requirements/gi,'các yêu cầu'],[/requirement/gi,'yêu cầu'],[/scope/gi,'scope/phạm vi'],[/schedule/gi,'schedule/tiến độ'],[/budget/gi,'ngân sách'],[/cost/gi,'chi phí'],[/risk/gi,'rủi ro'],[/issue/gi,'issue/vấn đề'],[/quality/gi,'chất lượng'],[/change request/gi,'change request/yêu cầu thay đổi'],[/backlog/gi,'backlog'],[/sprint/gi,'sprint'],[/iteration/gi,'iteration/vòng lặp'],[/agile/gi,'Agile'],[/hybrid/gi,'hybrid'],[/predictive/gi,'predictive'],
+    [/What should (.*?) do next\?/gi,'$1 nên làm gì tiếp theo?'],[/What should (.*?) do\?/gi,'$1 nên làm gì?'],[/What should be done/gi,'Nên làm gì'],[/What is the best/gi,'Điều nào là tốt nhất'],[/Which .* should/gi,'Điều nào nên'],[/How should/gi,'Nên xử lý như thế nào'],[/What action should/gi,'Hành động nào nên'],[/What process/gi,'Process nào'],[/What tool/gi,'Công cụ nào'],[/What technique/gi,'Kỹ thuật nào'],
+    [/Review/gi,'Review/xem xét'],[/Update/gi,'Cập nhật'],[/Create/gi,'Tạo'],[/Develop/gi,'Phát triển'],[/Perform/gi,'Thực hiện'],[/Conduct/gi,'Tiến hành'],[/Analyze/gi,'Phân tích'],[/Assess/gi,'Đánh giá'],[/Evaluate/gi,'Đánh giá'],[/Communicate/gi,'Trao đổi'],[/Inform/gi,'Thông báo'],[/Escalate/gi,'Escalate/chuyển cấp'],[/Meet with/gi,'Họp với'],[/Discuss/gi,'Thảo luận'],[/Ask/gi,'Yêu cầu/Hỏi'],[/Ensure/gi,'Đảm bảo'],[/Submit/gi,'Submit/gửi'],[/Implement/gi,'Triển khai'],[/Prioritize/gi,'Ưu tiên hóa'],[/Identify/gi,'Xác định'],[/Monitor/gi,'Theo dõi'],[/Control/gi,'Kiểm soát'],[/Validate/gi,'Xác nhận'],[/Approve/gi,'Phê duyệt'],[/Reject/gi,'Từ chối'],[/Accept/gi,'Chấp nhận'],
+    [/the /gi,''],[/a /gi,'một '],[/an /gi,'một '],[/and/gi,'và'],[/or/gi,'hoặc'],[/with/gi,'với'],[/to /gi,'để '],[/for /gi,'cho '],[/of /gi,'của '],[/in /gi,'trong '],[/on /gi,'trên ']
+  ];
+  for (const [re,rep] of replacements) s = s.replace(re,rep);
+  s = s.replace(/\s+/g,' ').trim();
+  return s;
+}
+
 function escapeHtml(s) {
   return String(s ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 }
