@@ -254,51 +254,21 @@ function answerPanel(q) {
   <div class="explain">${makeExplanation(q)}</div>`;
 }
 function makeExplanation(q) {
-  const correct = normalize(q.correct || '');
   const info = inferPmpArea(q);
-  const questionVi = getQuestionVi(q);
   let lines = [];
 
-  lines.push(`<h4>1. Dịch đầy đủ toàn bộ câu hỏi</h4>`);
-  lines.push(`<div class="analysis-box"><p>${escapeHtml(questionVi)}</p></div>`);
-
-  lines.push(`<h4>2. Dịch đầy đủ tất cả các đáp án lựa chọn</h4>`);
-  if(q.options && Object.keys(q.options).length) {
-    lines.push('<div class="analysis-box"><ul class="explain-list">');
-    for (const [k,v] of Object.entries(q.options)) {
-      lines.push(`<li><strong>${escapeHtml(k)}. ${escapeHtml(getOptionVi(q, k, v))}</strong></li>`);
-    }
-    lines.push('</ul></div>');
-  } else {
-    lines.push('<div class="analysis-box"><p>Câu dạng kéo-thả/hotspot/hình ảnh. File PDF gốc có phần đáp án dạng hình, nên trang web chỉ hiển thị phần text parse được.</p></div>');
-  }
-
-  lines.push(`<h4>3. Phân tích</h4>`);
-
-  lines.push(`<h5>Knowledge Area + Process</h5>`);
+  lines.push(`<h4>1. Knowledge Area + Process</h4>`);
   lines.push(`<div class="analysis-box"><p><strong>${escapeHtml(info.area)}</strong><br>${escapeHtml(info.process)}</p></div>`);
 
-  lines.push(`<h5>Đáp án đúng</h5>`);
+  lines.push(`<h4>2. Đáp án đúng</h4>`);
   lines.push(`<div class="analysis-box"><p><strong>${escapeHtml(q.correct || 'Không parse được từ PDF')}</strong></p></div>`);
 
-  lines.push(`<h5>Phân tích đáp án đúng</h5>`);
+  lines.push(`<h4>3. Phân tích đáp án đúng</h4>`);
   lines.push(`<div class="analysis-box"><p>${escapeHtml(info.correctLogic)}</p><p><strong>Keyword PMP:</strong> ${escapeHtml(info.keywords)}</p></div>`);
 
-  lines.push(`<h5>Phân tích đáp án sai</h5>`);
-  if(q.options && Object.keys(q.options).length) {
-    lines.push('<div class="analysis-box">');
-    for (const [k,v] of Object.entries(q.options)) {
-      const ok = correct.includes(k);
-      if(ok) continue;
-      lines.push(`<p><strong>${escapeHtml(k)}. ${escapeHtml(getOptionVi(q, k, v))}</strong><br>❌ ${escapeHtml(wrongOptionReason(info, v))}</p>`);
-    }
-    lines.push('</div>');
-  } else {
-    lines.push('<div class="analysis-box"><p>Với câu dạng kéo-thả/hotspot, cần đối chiếu trực tiếp hình ảnh đáp án trong PDF gốc.</p></div>');
-  }
-
-  lines.push(`<h5>Bẫy/mẹo PMP</h5>`);
+  lines.push(`<h4>4. Bẫy/mẹo PMP</h4>`);
   lines.push(`<div class="analysis-box"><p>${escapeHtml(info.trap)}</p></div>`);
+
   return lines.join('');
 }
 
