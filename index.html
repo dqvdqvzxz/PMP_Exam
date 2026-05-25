@@ -404,11 +404,11 @@ function wrongOptionReason(info, optionText) {
 }
 
 function getQuestionVi(q) {
-  return (VI_TEXTS[String(q.id)] && VI_TEXTS[String(q.id)].question) || q.question || \"\";
+  return (VI_TEXTS[String(q.id)] && VI_TEXTS[String(q.id)].question) || q.question || "";
 }
 function getOptionVi(q, key, fallback) {
   const item = VI_TEXTS[String(q.id)];
-  return (item && item.options && item.options[key]) || fallback || \"\";
+  return (item && item.options && item.options[key]) || fallback || "";
 }
 
 function escapeHtml(s) {
