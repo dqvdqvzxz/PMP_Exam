@@ -263,12 +263,6 @@ function makeExplanation(q) {
   lines.push(`<h4>2. Đáp án đúng</h4>`);
   lines.push(`<div class="analysis-box"><p><strong>${escapeHtml(q.correct || 'Không parse được từ PDF')}</strong></p></div>`);
 
-  lines.push(`<h4>3. Phân tích đáp án đúng</h4>`);
-  lines.push(`<div class="analysis-box"><p>${escapeHtml(info.correctLogic)}</p><p><strong>Keyword PMP:</strong> ${escapeHtml(info.keywords)}</p></div>`);
-
-  lines.push(`<h4>4. Bẫy/mẹo PMP</h4>`);
-  lines.push(`<div class="analysis-box"><p>${escapeHtml(info.trap)}</p></div>`);
-
   return lines.join('');
 }
 
