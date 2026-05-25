@@ -264,7 +264,7 @@ function makeExplanation(q) {
   if(q.options && Object.keys(q.options).length) {
     lines.push('<div class="analysis-box"><ul class="explain-list">');
     for (const [k,v] of Object.entries(q.options)) {
-      lines.push(`<li><strong>${escapeHtml(k)}. ${escapeHtml(v)}</strong><br><em>→ ${escapeHtml(translatePmpText(v))}</em></li>`);
+      lines.push(`<li><strong>${escapeHtml(k)}. ${escapeHtml(translatePmpText(v))}</strong></li>`);
     }
     lines.push('</ul></div>');
   } else {
@@ -288,7 +288,7 @@ function makeExplanation(q) {
     for (const [k,v] of Object.entries(q.options)) {
       const ok = correct.includes(k);
       if(ok) continue;
-      lines.push(`<p><strong>${escapeHtml(k)}. ${escapeHtml(v)}</strong><br>❌ ${escapeHtml(wrongOptionReason(info, v))}</p>`);
+      lines.push(`<p><strong>${escapeHtml(k)}. ${escapeHtml(translatePmpText(v))}</strong><br>❌ ${escapeHtml(wrongOptionReason(info, v))}</p>`);
     }
     lines.push('</div>');
   } else {
@@ -403,20 +403,88 @@ function wrongOptionReason(info, optionText) {
 
 function translatePmpText(input) {
   let s = String(input || '').trim();
-  if(!s) return '';
+  if (!s) return '';
+
+  // Dịch rule-based theo cụm PMP. Mục tiêu: phần giải thích hiển thị tiếng Việt sạch hơn,
+  // tránh kiểu dịch từng từ làm lẫn Anh-Việt như phiên bản cũ.
+  s = s
+    .replace(/time line/gi, 'timeline')
+    .replace(/standup/gi, 'stand-up')
+    .replace(/project management office \(PMO\)/gi, 'PMO')
+    .replace(/human resources \(HR\)/gi, 'HR')
+    .replace(/change control board \(CCB\)/gi, 'CCB')
+    .replace(/user acceptance testing \(UAT\)/gi, 'UAT')
+    .replace(/work breakdown structure \(WBS\)/gi, 'WBS')
+    .replace(/minimum viable product \(MVP\)/gi, 'MVP');
+
   const replacements = [
-    [/A project manager/gi,'Một project manager'],[/The project manager/gi,'Project manager'],[/project manager/gi,'project manager'],
-    [/project team/gi,'project team'],[/team member/gi,'thành viên nhóm'],[/team members/gi,'các thành viên nhóm'],[/stakeholders/gi,'các stakeholder'],[/stakeholder/gi,'stakeholder'],[/sponsor/gi,'sponsor'],[/customer/gi,'khách hàng'],[/client/gi,'client'],
-    [/has been assigned to/gi,'được phân công vào'],[/has just been/gi,'vừa được'],[/is leading/gi,'đang dẫn dắt'],[/is managing/gi,'đang quản lý'],[/is working on/gi,'đang làm việc trong'],[/is concerned/gi,'lo ngại'],[/has informed/gi,'đã thông báo'],[/has requested/gi,'đã yêu cầu'],
-    [/during/gi,'trong khi'],[/after/gi,'sau khi'],[/before/gi,'trước khi'],[/while/gi,'trong khi'],[/currently/gi,'hiện tại'],[/recently/gi,'gần đây'],[/soon/gi,'sớm'],[/next/gi,'tiếp theo'],[/first/gi,'đầu tiên'],
-    [/project/gi,'dự án'],[/program/gi,'chương trình'],[/portfolio/gi,'portfolio'],[/deliverables/gi,'các deliverable'],[/deliverable/gi,'deliverable'],[/requirements/gi,'các yêu cầu'],[/requirement/gi,'yêu cầu'],[/scope/gi,'scope/phạm vi'],[/schedule/gi,'schedule/tiến độ'],[/budget/gi,'ngân sách'],[/cost/gi,'chi phí'],[/risk/gi,'rủi ro'],[/issue/gi,'issue/vấn đề'],[/quality/gi,'chất lượng'],[/change request/gi,'change request/yêu cầu thay đổi'],[/backlog/gi,'backlog'],[/sprint/gi,'sprint'],[/iteration/gi,'iteration/vòng lặp'],[/agile/gi,'Agile'],[/hybrid/gi,'hybrid'],[/predictive/gi,'predictive'],
-    [/What should (.*?) do next\?/gi,'$1 nên làm gì tiếp theo?'],[/What should (.*?) do\?/gi,'$1 nên làm gì?'],[/What should be done/gi,'Nên làm gì'],[/What is the best/gi,'Điều nào là tốt nhất'],[/Which .* should/gi,'Điều nào nên'],[/How should/gi,'Nên xử lý như thế nào'],[/What action should/gi,'Hành động nào nên'],[/What process/gi,'Process nào'],[/What tool/gi,'Công cụ nào'],[/What technique/gi,'Kỹ thuật nào'],
-    [/Review/gi,'Review/xem xét'],[/Update/gi,'Cập nhật'],[/Create/gi,'Tạo'],[/Develop/gi,'Phát triển'],[/Perform/gi,'Thực hiện'],[/Conduct/gi,'Tiến hành'],[/Analyze/gi,'Phân tích'],[/Assess/gi,'Đánh giá'],[/Evaluate/gi,'Đánh giá'],[/Communicate/gi,'Trao đổi'],[/Inform/gi,'Thông báo'],[/Escalate/gi,'Escalate/chuyển cấp'],[/Meet with/gi,'Họp với'],[/Discuss/gi,'Thảo luận'],[/Ask/gi,'Yêu cầu/Hỏi'],[/Ensure/gi,'Đảm bảo'],[/Submit/gi,'Submit/gửi'],[/Implement/gi,'Triển khai'],[/Prioritize/gi,'Ưu tiên hóa'],[/Identify/gi,'Xác định'],[/Monitor/gi,'Theo dõi'],[/Control/gi,'Kiểm soát'],[/Validate/gi,'Xác nhận'],[/Approve/gi,'Phê duyệt'],[/Reject/gi,'Từ chối'],[/Accept/gi,'Chấp nhận'],
-    [/the /gi,''],[/a /gi,'một '],[/an /gi,'một '],[/and/gi,'và'],[/or/gi,'hoặc'],[/with/gi,'với'],[/to /gi,'để '],[/for /gi,'cho '],[/of /gi,'của '],[/in /gi,'trong '],[/on /gi,'trên ']
+    [/What should the project manager have done to avoid this situation\?/gi, 'Quản lý dự án lẽ ra nên làm gì để tránh tình huống này?'],
+    [/What should the project manager have done to prevent this situation from happening\?/gi, 'Quản lý dự án lẽ ra nên làm gì để ngăn tình huống này xảy ra?'],
+    [/What should the project manager do next\?/gi, 'Quản lý dự án nên làm gì tiếp theo?'],
+    [/What should the project manager do first\?/gi, 'Quản lý dự án nên làm gì đầu tiên?'],
+    [/What should the project manager do\?/gi, 'Quản lý dự án nên làm gì?'],
+    [/What should the project leader have done to ensure success\?/gi, 'Người dẫn dắt dự án lẽ ra nên làm gì để bảo đảm thành công?'],
+    [/What should the project lead do\?/gi, 'Trưởng dự án nên làm gì?'],
+    [/What should the team do next\?/gi, 'Nhóm nên làm gì tiếp theo?'],
+    [/What should .*? do next\?/gi, 'Người được nhắc đến nên làm gì tiếp theo?'],
+    [/What should .*? do first\?/gi, 'Người được nhắc đến nên làm gì đầu tiên?'],
+    [/What should .*? do\?/gi, 'Người được nhắc đến nên làm gì?'],
+    [/How should the project manager address this situation\?/gi, 'Quản lý dự án nên xử lý tình huống này như thế nào?'],
+    [/How should the project manager handle this situation\?/gi, 'Quản lý dự án nên xử lý tình huống này như thế nào?'],
+    [/How should the project manager proceed\?/gi, 'Quản lý dự án nên tiến hành như thế nào?'],
+    [/Which two actions should the project manager take\? \(Choose two\.\)/gi, 'Quản lý dự án nên thực hiện hai hành động nào? (Chọn hai.)'],
+    [/Which three actions should the project manager take.*?\(Choose three\.\)/gi, 'Quản lý dự án nên thực hiện ba hành động nào? (Chọn ba.)'],
+    [/Which action should the project manager take/gi, 'Quản lý dự án nên thực hiện hành động nào'],
+    [/Which life cycle should the project manager use for this project\?/gi, 'Quản lý dự án nên sử dụng vòng đời nào cho dự án này?'],
+    [/What is the root cause of this issue\?/gi, 'Nguyên nhân gốc rễ của vấn đề này là gì?'],
+    [/What is the most likely reason/gi, 'Lý do có khả năng cao nhất là gì'],
+    [/What was the project manager demonstrating\?/gi, 'Quản lý dự án đang thể hiện điều gì?'],
+    [/Choose two\./gi, 'Chọn hai.'], [/Choose three\./gi, 'Chọn ba.'],
+
+    [/A project manager/gi, 'Một quản lý dự án'], [/The project manager/gi, 'Quản lý dự án'], [/project manager/gi, 'quản lý dự án'],
+    [/project leader/gi, 'người dẫn dắt dự án'], [/project lead/gi, 'trưởng dự án'], [/project sponsor/gi, 'nhà tài trợ dự án'], [/sponsor/gi, 'nhà tài trợ'],
+    [/product owner/gi, 'Product Owner'], [/Scrum master/gi, 'Scrum Master'], [/stakeholders/gi, 'các bên liên quan'], [/stakeholder/gi, 'bên liên quan'],
+    [/customer/gi, 'khách hàng'], [/client/gi, 'khách hàng'], [/vendor/gi, 'nhà cung cấp'], [/supplier/gi, 'nhà cung cấp'], [/contractor/gi, 'nhà thầu'],
+    [/team members/gi, 'các thành viên nhóm'], [/team member/gi, 'thành viên nhóm'], [/project team/gi, 'nhóm dự án'], [/development team/gi, 'nhóm phát triển'], [/operations team/gi, 'nhóm vận hành'],
+    [/functional manager/gi, 'quản lý chức năng'], [/senior management/gi, 'quản lý cấp cao'], [/upper management/gi, 'ban quản lý cấp trên'], [/PMO/gi, 'văn phòng quản lý dự án'], [/HR/gi, 'bộ phận nhân sự'],
+
+    [/project management plan/gi, 'kế hoạch quản lý dự án'], [/communications management plan/gi, 'kế hoạch quản lý truyền thông'], [/communication management plan/gi, 'kế hoạch quản lý truyền thông'],
+    [/stakeholder engagement plan/gi, 'kế hoạch gắn kết các bên liên quan'], [/risk management plan/gi, 'kế hoạch quản lý rủi ro'], [/quality management plan/gi, 'kế hoạch quản lý chất lượng'],
+    [/resource management plan/gi, 'kế hoạch quản lý nguồn lực'], [/scope management plan/gi, 'kế hoạch quản lý phạm vi'], [/procurement management plan/gi, 'kế hoạch quản lý mua sắm'], [/change management plan/gi, 'kế hoạch quản lý thay đổi'],
+    [/risk register/gi, 'sổ đăng ký rủi ro'], [/issue log/gi, 'nhật ký vấn đề'], [/change log/gi, 'nhật ký thay đổi'], [/lessons learned register/gi, 'sổ bài học kinh nghiệm'], [/lessons learned repository/gi, 'kho bài học kinh nghiệm'],
+    [/stakeholder register/gi, 'sổ đăng ký bên liên quan'], [/requirements traceability matrix/gi, 'ma trận truy vết yêu cầu'], [/acceptance criteria/gi, 'tiêu chí nghiệm thu'], [/accepted deliverables/gi, 'các sản phẩm bàn giao đã được nghiệm thu'],
+    [/deliverables/gi, 'các sản phẩm bàn giao'], [/deliverable/gi, 'sản phẩm bàn giao'], [/business case/gi, 'luận chứng kinh doanh'], [/benefits management plan/gi, 'kế hoạch quản lý lợi ích'], [/benefits realization plan/gi, 'kế hoạch hiện thực hóa lợi ích'],
+    [/business value/gi, 'giá trị kinh doanh'], [/change requests/gi, 'các yêu cầu thay đổi'], [/change request/gi, 'yêu cầu thay đổi'], [/CCB/gi, 'ban kiểm soát thay đổi'], [/WBS/gi, 'cấu trúc phân rã công việc'], [/SOW/gi, 'phạm vi công việc'], [/UAT/gi, 'kiểm thử chấp nhận người dùng'], [/MVP/gi, 'sản phẩm khả dụng tối thiểu'],
+    [/definition of done/gi, 'định nghĩa hoàn thành'], [/daily stand-up meetings/gi, 'các cuộc họp đứng hằng ngày'], [/daily stand-up/gi, 'cuộc họp đứng hằng ngày'], [/daily meetings/gi, 'các cuộc họp hằng ngày'],
+    [/sprint planning/gi, 'lập kế hoạch sprint'], [/sprint review/gi, 'đánh giá sprint'], [/retrospective/gi, 'họp cải tiến sau sprint'], [/backlog refinement/gi, 'làm rõ và tinh chỉnh backlog'], [/product backlog/gi, 'product backlog'],
+    [/iteration review/gi, 'đánh giá vòng lặp'], [/iteration/gi, 'vòng lặp'], [/sprint/gi, 'sprint'], [/agile/gi, 'Agile'], [/hybrid/gi, 'hybrid'], [/predictive/gi, 'dự đoán'], [/incremental/gi, 'gia tăng'], [/iterative/gi, 'lặp'],
+    [/servant leader/gi, 'lãnh đạo phục vụ'], [/self-organizing/gi, 'tự tổ chức'], [/self-organized/gi, 'tự tổ chức'], [/impediments/gi, 'các trở ngại'], [/impediment/gi, 'trở ngại'], [/roadblock/gi, 'rào cản lớn'], [/blockers/gi, 'các điểm nghẽn'], [/blocker/gi, 'điểm nghẽn'], [/velocity/gi, 'tốc độ hoàn thành'],
+    [/burndown chart/gi, 'biểu đồ burndown'], [/burnup chart/gi, 'biểu đồ burnup'], [/kanban board/gi, 'bảng Kanban'], [/Scrum of Scrums/gi, 'Scrum of Scrums'],
+
+    [/has been assigned to/gi, 'đã được phân công'], [/has been asked to/gi, 'đã được yêu cầu'], [/has informed/gi, 'đã thông báo'], [/has requested/gi, 'đã yêu cầu'], [/has identified/gi, 'đã xác định'], [/has completed/gi, 'đã hoàn thành'], [/has started/gi, 'đã bắt đầu'],
+    [/is assigned to/gi, 'được phân công'], [/is leading/gi, 'đang dẫn dắt'], [/is managing/gi, 'đang quản lý'], [/is working on/gi, 'đang làm việc trong'], [/is concerned/gi, 'lo ngại'], [/is responsible for/gi, 'chịu trách nhiệm'], [/are responsible for/gi, 'chịu trách nhiệm'],
+    [/needs to/gi, 'cần'], [/need to/gi, 'cần'], [/wants to/gi, 'muốn'], [/want to/gi, 'muốn'], [/decided to/gi, 'đã quyết định'], [/in order to/gi, 'để'], [/due to/gi, 'do'], [/because of/gi, 'do'], [/as a result/gi, 'kết quả là'], [/however/gi, 'tuy nhiên'], [/therefore/gi, 'do đó'], [/although/gi, 'mặc dù'],
+    [/during/gi, 'trong'], [/after/gi, 'sau khi'], [/before/gi, 'trước khi'], [/while/gi, 'trong khi'], [/within/gi, 'trong phạm vi'], [/without/gi, 'mà không'], [/between/gi, 'giữa'], [/among/gi, 'giữa'], [/against/gi, 'so với'], [/based on/gi, 'dựa trên'], [/according to/gi, 'theo'], [/in place/gi, 'đã có sẵn'], [/on time/gi, 'đúng hạn'], [/on track/gi, 'đúng hướng/đúng tiến độ'],
+    [/at the end of/gi, 'vào cuối'], [/at the start of/gi, 'vào đầu'], [/at the beginning of/gi, 'vào đầu'], [/in the middle of/gi, 'ở giữa'], [/close to the end of/gi, 'gần cuối'], [/as soon as possible/gi, 'sớm nhất có thể'], [/no longer/gi, 'không còn'], [/not able to/gi, 'không thể'], [/unable to/gi, 'không thể'], [/may not be/gi, 'có thể không'], [/might not be/gi, 'có thể không'], [/will not be/gi, 'sẽ không'], [/should not/gi, 'không nên'], [/must be/gi, 'phải được'], [/must/gi, 'phải'], [/should/gi, 'nên'], [/could/gi, 'có thể'], [/may/gi, 'có thể'], [/will/gi, 'sẽ'],
+
+    [/consult/gi, 'tham khảo'], [/review/gi, 'xem xét'], [/revise/gi, 'điều chỉnh'], [/update/gi, 'cập nhật'], [/create/gi, 'tạo'], [/develop/gi, 'xây dựng'], [/perform/gi, 'thực hiện'], [/conduct/gi, 'tiến hành'], [/analyze/gi, 'phân tích'], [/assess/gi, 'đánh giá'], [/evaluate/gi, 'đánh giá'], [/communicate/gi, 'trao đổi'], [/inform/gi, 'thông báo'], [/escalate/gi, 'chuyển cấp'], [/meet with/gi, 'họp với'], [/discuss/gi, 'thảo luận'], [/ask/gi, 'yêu cầu'], [/request/gi, 'yêu cầu'], [/ensure/gi, 'đảm bảo'], [/submit/gi, 'gửi'], [/implement/gi, 'triển khai'], [/prioritize/gi, 'ưu tiên hóa'], [/identify/gi, 'xác định'], [/monitor/gi, 'theo dõi'], [/control/gi, 'kiểm soát'], [/validate/gi, 'xác nhận'], [/approve/gi, 'phê duyệt'], [/reject/gi, 'từ chối'], [/accept/gi, 'chấp nhận'], [/facilitate/gi, 'điều phối'], [/collaborate/gi, 'cộng tác'], [/empower/gi, 'trao quyền'], [/coach/gi, 'huấn luyện'], [/mentor/gi, 'cố vấn'], [/train/gi, 'đào tạo'], [/negotiate/gi, 'thương lượng'], [/align/gi, 'căn chỉnh'], [/agree/gi, 'thống nhất'], [/clarify/gi, 'làm rõ'], [/investigate/gi, 'điều tra'], [/determine/gi, 'xác định'], [/prepare/gi, 'chuẩn bị'], [/schedule/gi, 'lên lịch'], [/remove/gi, 'loại bỏ'], [/replace/gi, 'thay thế'], [/hire/gi, 'thuê'], [/assign/gi, 'phân công'], [/support/gi, 'hỗ trợ'], [/resolve/gi, 'giải quyết'], [/mitigate/gi, 'giảm thiểu'], [/avoid/gi, 'tránh'], [/share/gi, 'chia sẻ'], [/document/gi, 'ghi lại'], [/track/gi, 'theo dõi'], [/estimate/gi, 'ước tính'], [/forecast/gi, 'dự báo'], [/launch/gi, 'ra mắt'], [/release/gi, 'phát hành'], [/deliver/gi, 'bàn giao'], [/complete/gi, 'hoàn thành'],
+
+    [/project/gi, 'dự án'], [/program/gi, 'chương trình'], [/portfolio/gi, 'danh mục'], [/scope/gi, 'phạm vi'], [/schedule/gi, 'tiến độ'], [/timeline/gi, 'mốc thời gian'], [/budget/gi, 'ngân sách'], [/cost/gi, 'chi phí'], [/risks/gi, 'các rủi ro'], [/risk/gi, 'rủi ro'], [/issues/gi, 'các vấn đề'], [/issue/gi, 'vấn đề'], [/quality/gi, 'chất lượng'], [/requirements/gi, 'các yêu cầu'], [/requirement/gi, 'yêu cầu'], [/resources/gi, 'nguồn lực'], [/resource/gi, 'nguồn lực'], [/activities/gi, 'các hoạt động'], [/activity/gi, 'hoạt động'], [/tasks/gi, 'các nhiệm vụ'], [/task/gi, 'nhiệm vụ'], [/features/gi, 'các tính năng'], [/feature/gi, 'tính năng'], [/functionality/gi, 'chức năng'], [/functions/gi, 'các chức năng'], [/solution/gi, 'giải pháp'], [/product/gi, 'sản phẩm'], [/processes/gi, 'các quy trình'], [/process/gi, 'quy trình'], [/governance/gi, 'quản trị'], [/compliance/gi, 'tuân thủ'], [/regulations/gi, 'các quy định'], [/regulation/gi, 'quy định'], [/law/gi, 'luật'], [/contract/gi, 'hợp đồng'], [/invoice/gi, 'hóa đơn'], [/payment/gi, 'thanh toán'], [/funding/gi, 'nguồn tài trợ'], [/reserve/gi, 'dự phòng'], [/contingency/gi, 'dự phòng ứng phó'], [/baseline/gi, 'đường cơ sở'], [/critical path/gi, 'đường găng'], [/milestone/gi, 'cột mốc'], [/delays/gi, 'các chậm trễ'], [/delay/gi, 'chậm trễ'], [/rework/gi, 'làm lại'], [/defects/gi, 'các lỗi'], [/defect/gi, 'lỗi'], [/training/gi, 'đào tạo'], [/knowledge sharing/gi, 'chia sẻ kiến thức'], [/communications/gi, 'truyền thông'], [/communication/gi, 'truyền thông'], [/reports/gi, 'các báo cáo'], [/report/gi, 'báo cáo'], [/meetings/gi, 'các cuộc họp'], [/meeting/gi, 'cuộc họp'], [/email/gi, 'email'], [/status/gi, 'trạng thái'], [/performance/gi, 'hiệu suất'], [/value/gi, 'giá trị'], [/benefits/gi, 'các lợi ích'], [/benefit/gi, 'lợi ích'], [/impacts/gi, 'các tác động'], [/impact/gi, 'tác động'], [/dependencies/gi, 'các phụ thuộc'], [/dependency/gi, 'phụ thuộc'], [/constraints/gi, 'các ràng buộc'], [/constraint/gi, 'ràng buộc'], [/uncertainty/gi, 'sự không chắc chắn'], [/opportunity/gi, 'cơ hội'], [/threat/gi, 'mối đe dọa'], [/root cause analysis/gi, 'phân tích nguyên nhân gốc rễ'], [/root cause/gi, 'nguyên nhân gốc rễ'], [/lessons learned/gi, 'bài học kinh nghiệm'], [/virtual/gi, 'ảo/từ xa'], [/remote/gi, 'từ xa'], [/distributed/gi, 'phân tán'], [/global/gi, 'toàn cầu'], [/local/gi, 'địa phương'], [/external/gi, 'bên ngoài'], [/internal/gi, 'nội bộ'], [/formal/gi, 'chính thức'], [/appropriate/gi, 'phù hợp'], [/available/gi, 'sẵn có'], [/mandatory/gi, 'bắt buộc'], [/regulatory/gi, 'liên quan đến quy định'], [/technical/gi, 'kỹ thuật'], [/experienced/gi, 'có kinh nghiệm'], [/critical/gi, 'quan trọng'], [/important/gi, 'quan trọng'], [/successful/gi, 'thành công'], [/unclear/gi, 'không rõ ràng'], [/current/gi, 'hiện tại'], [/previous/gi, 'trước đó'], [/next/gi, 'tiếp theo'], [/first/gi, 'đầu tiên'], [/early/gi, 'sớm'], [/frequent/gi, 'thường xuyên'], [/regular/gi, 'định kỳ'],
+
+    [/\band\b/gi, 'và'], [/\bor\b/gi, 'hoặc'], [/\bwith\b/gi, 'với'], [/\bfor\b/gi, 'cho'], [/\bof\b/gi, 'của'], [/\bin\b/gi, 'trong'], [/\bon\b/gi, 'trên'], [/\bto\b/gi, 'để'], [/\bthe\b/gi, ''], [/\ban\b/gi, 'một'], [/\ba\b/gi, 'một'], [/\s+/g, ' ']
   ];
-  for (const [re,rep] of replacements) s = s.replace(re,rep);
-  s = s.replace(/\s+/g,' ').trim();
-  return s;
+  for (const [re, rep] of replacements) s = s.replace(re, rep);
+  s = s
+    .replace(/quản lý dự án dự án/gi, 'quản lý dự án')
+    .replace(/dự án dự án/gi, 'dự án')
+    .replace(/nhóm dự án dự án/gi, 'nhóm dự án')
+    .replace(/các các /gi, 'các ')
+    .replace(/một các /gi, 'các ')
+    .replace(/\s+([,.?:;])/g, '$1')
+    .replace(/\( /g, '(').replace(/ \)/g, ')')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return s ? s.charAt(0).toUpperCase() + s.slice(1) : '';
 }
 
 function escapeHtml(s) {
